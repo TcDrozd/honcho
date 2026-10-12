@@ -494,12 +494,19 @@ DREAM_MIN_HOURS_BETWEEN_DREAMS=8
 DREAM_ENABLED_TYPES=["omni"]
 DREAM_MAX_TOOL_ITERATIONS=20
 
+# Optional: only start automatic dreams between these hours (unset = any hour)
+# DREAM_WINDOW_START_HOUR=1
+# DREAM_WINDOW_END_HOUR=6
+# DREAM_WINDOW_TIMEZONE=America/New_York
+
 # Specialist model configs (each is independent)
 DREAM_DEDUCTION_MODEL_CONFIG__TRANSPORT=openai
 DREAM_DEDUCTION_MODEL_CONFIG__MODEL=gpt-5.4-mini
 DREAM_INDUCTION_MODEL_CONFIG__TRANSPORT=openai
 DREAM_INDUCTION_MODEL_CONFIG__MODEL=gpt-5.4-mini
 ```
+
+`DREAM_WINDOW_START_HOUR` and `DREAM_WINDOW_END_HOUR` restrict automatic dreams to a time of day, such as overnight when a self-hosted model is otherwise idle. Hours are read in `DREAM_WINDOW_TIMEZONE` (an IANA name, default `UTC`), the end hour is exclusive, and a window may wrap midnight (`22` and `6`). Set both or neither. A dream that becomes due outside the window waits for it to open. The window gates when a dream starts, not how long it runs, and dreams scheduled by hand with `POST /workspaces/{workspace_id}/schedule_dream` ignore it. With `DERIVER_SCHEDULER=api`, the window is re-checked on every `DREAM_DUE_POLL_INTERVAL_SECONDS` poll and `dreams_due` reads 0 outside it. With `DERIVER_SCHEDULER=deriver`, the wait is an in-memory timer in the deriver, so a restart drops it until the next representation batch for that collection reschedules it.
 
 **Surprisal-Based Sampling (Advanced):**
 

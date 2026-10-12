@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import math
 from datetime import UTC, datetime
 from logging import getLogger
 
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src import models
 from src.config import settings
 from src.dependencies import tracked_db
+from src.dreamer.dream_window import seconds_until_dream_window
 from src.schemas import DreamType
 from src.utils.work_unit import construct_work_unit_key, parse_work_unit_key
 
@@ -153,6 +155,11 @@ class DreamScheduler:
     ) -> None:
         try:
             await asyncio.sleep(delay_minutes * 60)
+            # The idle timer can end after the window closes; hold until it reopens.
+            window_wait = seconds_until_dream_window(datetime.now(UTC))
+            if window_wait > 0:
+                await asyncio.sleep(window_wait)
+                delay_reason = "dream_window"
 
             await self.execute_dream(
                 workspace_name,
@@ -311,6 +318,13 @@ async def check_and_schedule_dream(
         delay_reason = (
             "idle_timeout" if settings.DREAM.IDLE_TIMEOUT_MINUTES > 0 else "immediate"
         )
+        delay_minutes = settings.DREAM.IDLE_TIMEOUT_MINUTES
+        window_wait_minutes = math.ceil(
+            seconds_until_dream_window(datetime.now(UTC)) / 60
+        )
+        if window_wait_minutes > delay_minutes:
+            delay_minutes = window_wait_minutes
+            delay_reason = "dream_window"
         if last_dream_at:
             try:
                 last_dream_time = datetime.fromisoformat(last_dream_at)
@@ -381,7 +395,7 @@ async def check_and_schedule_dream(
                 await dream_scheduler.schedule_dream(
                     dream_work_unit_key,
                     collection.workspace_name,
-                    settings.DREAM.IDLE_TIMEOUT_MINUTES,
+                    delay_minutes,
                     dream_type=DreamType(dream_type),
                     observer=collection.observer,
                     observed=collection.observed,

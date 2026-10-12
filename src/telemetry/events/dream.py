@@ -89,8 +89,8 @@ class DreamRunEvent(BaseEvent):
         default=None,
         description=(
             "What governed when this dream actually fired: 'idle_timeout' | "
-            "'immediate' | 'min_hours_gate'. Disambiguates from trigger_reason "
-            "to preserve the two-gate scheduler semantics in analytics."
+            "'immediate' | 'min_hours_gate' | 'dream_window'. Disambiguates from "
+            "trigger_reason to preserve the two-gate scheduler semantics in analytics."
         ),
     )
     documents_since_last_dream_at_schedule: int | None = Field(

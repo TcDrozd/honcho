@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `DREAM_WINDOW_START_HOUR`, `DREAM_WINDOW_END_HOUR`, and `DREAM_WINDOW_TIMEZONE` limit automatic dreams to a time of day, for example overnight when a self-hosted model is idle. The window may wrap midnight and is off by default. A dream that becomes due outside it waits for it to open, under either `DERIVER_SCHEDULER` mode; manual `schedule_dream` calls ignore it. Telemetry records the wait as `delay_reason="dream_window"`
+
 ## [3.3.0] - 2026-10-09
 
 ### Added

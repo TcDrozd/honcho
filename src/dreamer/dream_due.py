@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src import models
 from src.config import settings
+from src.dreamer.dream_window import seconds_until_dream_window
 from src.schemas import DreamType
 from src.utils.config_helpers import get_configuration
 from src.utils.work_unit import construct_work_unit_key, parse_work_unit_key
@@ -33,13 +34,16 @@ async def count_due_dreams(db: AsyncSession) -> int:
 
 
 async def list_due_dreams(db: AsyncSession) -> list[DueDream]:
-    """List collections past the threshold, the idle timeout, the min-hours gate, any earlier attempt, pending representation work, and the session's dream setting."""
+    """List collections past the threshold, the idle timeout, the min-hours gate, any earlier attempt, pending representation work, and the session's dream setting. Outside the dream window nothing is due."""
     dream_types = [
         DreamType(dream_type)
         for dream_type in settings.DREAM.ENABLED_TYPES
         if dream_type == DreamType.OMNI.value
     ]
     if not settings.DREAM.ENABLED or not dream_types:
+        return []
+
+    if seconds_until_dream_window(datetime.now(UTC)) > 0:
         return []
 
     explicit_counts = (

@@ -5,6 +5,7 @@ import tomllib
 from pathlib import Path
 from typing import Annotated, Any, ClassVar, Literal, cast, get_args
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dotenv import load_dotenv
 from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
@@ -1394,6 +1395,13 @@ class DreamSettings(HonchoSettings):
     MAX_ENQUEUED_PER_POLL: Annotated[int, Field(default=100, gt=0, le=10_000)] = 100
     ENABLED_TYPES: list[str] = ["omni"]
 
+    # Hours of the day (in WINDOW_TIMEZONE) in which automatic dreams may start,
+    # e.g. 1 and 6 for 01:00-06:00. The window may wrap midnight (22 and 6).
+    # Unset means any hour. Manual dreams (schedule_dream) ignore the window.
+    WINDOW_START_HOUR: Annotated[int | None, Field(default=None, ge=0, le=23)] = None
+    WINDOW_END_HOUR: Annotated[int | None, Field(default=None, ge=0, le=23)] = None
+    WINDOW_TIMEZONE: str = "UTC"
+
     # Agent iteration limit - increased for extended reasoning workflow
     MAX_TOOL_ITERATIONS: Annotated[int, Field(default=20, gt=0, le=50)] = 20
 
@@ -1440,6 +1448,29 @@ class DreamSettings(HonchoSettings):
                 cls._INDUCTION_MODEL_CONFIG_DEFAULT,
             )
         return data  # pyright: ignore[reportUnknownVariableType]
+
+    @model_validator(mode="after")
+    def _validate_window(self) -> "DreamSettings":
+        if (self.WINDOW_START_HOUR is None) != (self.WINDOW_END_HOUR is None):
+            raise ValueError(
+                "dream.WINDOW_START_HOUR and dream.WINDOW_END_HOUR must be set together"
+            )
+        if (
+            self.WINDOW_START_HOUR is not None
+            and self.WINDOW_START_HOUR == self.WINDOW_END_HOUR
+        ):
+            raise ValueError(
+                "dream.WINDOW_START_HOUR and dream.WINDOW_END_HOUR must differ; "
+                + "unset both to allow dreams at any hour"
+            )
+        try:
+            ZoneInfo(self.WINDOW_TIMEZONE)
+        except (ZoneInfoNotFoundError, ValueError) as e:
+            raise ValueError(
+                f"dream.WINDOW_TIMEZONE {self.WINDOW_TIMEZONE!r} is not a known "
+                + "IANA timezone"
+            ) from e
+        return self
 
     @model_validator(mode="after")
     def _validate_specialist_token_budgets(self) -> "DreamSettings":

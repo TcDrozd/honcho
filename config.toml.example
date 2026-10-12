@@ -225,6 +225,10 @@ ENABLED = true
 DOCUMENT_THRESHOLD = 50
 IDLE_TIMEOUT_MINUTES = 60
 MIN_HOURS_BETWEEN_DREAMS = 8
+# Only start automatic dreams between these hours (unset = any hour)
+# WINDOW_START_HOUR = 1
+# WINDOW_END_HOUR = 6
+# WINDOW_TIMEZONE = "UTC"
 ENABLED_TYPES = ["omni"]
 MAX_TOOL_ITERATIONS = 20
 

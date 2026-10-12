@@ -353,3 +353,24 @@ class TestCountDueDreams:
             "src.dreamer.dream_due.settings.DREAM.ENABLED_TYPES", ["card_refresh"]
         ):
             assert await count_due_dreams(db_session) == 0
+
+
+@pytest.mark.asyncio
+class TestDreamWindow:
+    async def test_nothing_is_due_outside_the_window(
+        self,
+        db_session: AsyncSession,
+        sample_data: tuple[models.Workspace, models.Peer],
+    ):
+        collection = await _make_collection(db_session, sample_data)
+        await _insert_docs(db_session, collection, "explicit", 60, age_minutes=90)
+
+        with patch(
+            "src.dreamer.dream_due.seconds_until_dream_window", return_value=3600.0
+        ):
+            assert await count_due_dreams(db_session) == 0
+
+        with patch(
+            "src.dreamer.dream_due.seconds_until_dream_window", return_value=0.0
+        ):
+            assert await count_due_dreams(db_session) == 1
